@@ -169,9 +169,10 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 			var events = [];
 			for(event_key in conversation_state['conversation_state']['event']){
 				var convo_event = conversation_state['conversation_state']['event'][event_key];
+				var timestamp = convo_event['timestamp'];
+				var msgtime = formatTimestamp(timestamp);
 				var sender = convo_event['sender_id']['gaia_id'];
 				var message = "";
-				var timestamp = convo_event['timestamp'];
 				if(convo_event['chat_message']){
 
 					// Get message
@@ -192,7 +193,7 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 						}
 					}
 
-					events.push({sender: participants_obj[sender], message: message, timestamp: timestamp});
+					events.push({msgtime: msgtime, sender: participants_obj[sender], message: message, timestamp: timestamp});
 				}
 			}
 
@@ -215,8 +216,23 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 		$('.txt').text('');
 		for(var event_id in Conversations[id]){
 			var convo_event = Conversations[id][event_id];
-			$('.txt').append(convo_event.sender + ": " + convo_event.message + "\n");
+			$('.txt').append(convo_event.msgtime + ": " + convo_event.sender + ": " + convo_event.message + "\n");
 		}
+	}
+
+	function zeroPad(string) {
+		return (string < 10) ? "0" + string : string;
+	}
+
+	function formatTimestamp(timestamp) {
+		var d = new Date(timestamp/1000);
+		var formattedDate = d.getFullYear() + "-" +
+		    zeroPad(d.getMonth() + 1) + "-" +
+		    zeroPad(d.getDate());
+		var hours = zeroPad(d.getHours());
+		var minutes = zeroPad(d.getMinutes());
+		var formattedTime = hours + ":" + minutes;
+		return formattedDate + " " + formattedTime;
 	}
 
 	</script>
