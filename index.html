@@ -213,10 +213,18 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 
 	function switchConvo(id){
 		$('.txt').text('');
+		$('.txt').append("<a href=\"javascript:void(0);\" onclick=\"jsonView('"+id+"')\">Get JSON</a></br>");
 		for(var event_id in Conversations[id]){
 			var convo_event = Conversations[id][event_id];
 			$('.txt').append(convo_event.sender + ": " + convo_event.message + "\n");
 		}
+	}
+
+	function jsonView(id){
+		var blob = new Blob([JSON.stringify(Conversations[id])], {type: 'text/plain'});
+		var url  = window.URL.createObjectURL(blob);
+		window.open(url, '_blank');
+		window.focus();
 	}
 
 	</script>
