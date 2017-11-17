@@ -6,6 +6,7 @@
 
 		<!-- Styles -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+		<link rel="stylesheet" href="hangouts.css">
 		<style type="text/css">
 		.btn-file {
 			position: relative;
@@ -30,11 +31,10 @@
 			margin-top: 40px;
 		}
 		.thumb{
-			width:100px;
+			width:200px;
 			height: auto;
 		}
 		.txt{
-			white-space: pre-wrap;
 			border: 1px solid #ddd;
 			border-radius: 4px;
 			padding: 14px;
@@ -43,30 +43,51 @@
 		.emoji{
 			width: 15px;
 		}
+		.settings {
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			padding: 14px;
+			background: #F5F5F5;
+		}
 		h3{
 			margin-top: 0;
 		}
 		</style>
 	</head>
-	<body>
+	<body style="overflow: scroll">
 
 		<div class="container-fluid main">
-			<h1>Hangouts.json Reader</h1>
+			<h1 class="delete_for_print">Hangouts.json Reader</h1>
 
-			<form class="form-inline">
+			<div class="delete_for_print">
+			<form class="form-inline settings">
 				Select your Hangouts.json file:
 				<div class="input-group">
 					<span class="input-group-btn">
 						<span class="btn btn-primary btn-file">
-							Browse&hellip; <input id="file-upload" type="file" multiple>
+							Browse… <input id="file-upload" type="file" multiple="">
 						</span>
 					</span>
-					<input type="text" class="form-control file-name" readonly>
+					<input type="text" class="form-control file-name" readonly="">
 				</div>
+				<div class="input-group" style="margin-left: 10px">
+					Only include from… <input id="date-begin" type="date" multiple="">
+				</div>
+				<div class="input-group" style="margin-left: 10px">
+					Hangounts Formatting - <input id="hangout-format" type="checkbox" multiple="">
+				</div>
+				
+				<div class="input-group" style="margin-left: 10px; float: right;">
+					<input type="submit" value="Prep for print" id="prep_print" class="delete_for_print">
+				</div>
+				
+				
 			</form>
+			</div>
+			
 
 			<div class="row main-row">
-				<div class="col-md-3">
+				<div class="col-md-3 delete_for_print">
 					<ul class="list-group convo-list">
 
 					</ul>
@@ -81,8 +102,8 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 				</div>
 			</div>
 		</div>
-
 	</body>
+	
 	<script type="text/javascript" src="https://code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/1.2.1/twemoji.min.js"></script>
@@ -97,6 +118,11 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 			numFiles = input.get(0).files ? input.get(0).files.length : 1,
 			label    = input.val().replace(/\\/g, '/').replace(/.*\//, '');
 		input.trigger('fileselect', [numFiles, label]);
+	});
+	
+	$("#prep_print").click(function() {
+		$('body').css("overflow","visible");
+		$('.delete_for_print').remove();
 	});
 
 	$('.btn-file :file').on('fileselect', function(event, numFiles, label) {
@@ -213,19 +239,104 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 		}
 	}
 
+	
 	function switchConvo(id){
 		$('.txt').text('');
-		for(var event_id in Conversations[id]){
-			var convo_event = Conversations[id][event_id];
-			$('.txt').append(convo_event.msgtime + ": " + convo_event.sender + ": " + convo_event.message + "\n");
+		
+		var current_writer = "N/A";
+		
+		var flts = ["right", "left"];
+		var colors = ["#cfd8dc", "#FFFFFF"];
+		var idx = 0;
+		var last_timestamp = 0;
+		var last_msgtime = "";
+		var buffer = "";
+		var convo_event;
+		
+		function writeBlock(writeTime) {
+			var color = colors[idx];
+			var flt = flts[idx];
+			var appnd = '<div class="tk TmwRj pj GjkoZd" style="clear: both;" id=":i0.mw">' +
+				'		<div class="Tn" id=":i0.ma">' +
+				'			<div class="KL" style="float: ' + flt + '">' + 
+				'				<div class="PD IF">' +
+				'					<div class="KRQuhe" style="background-color: '+color+'"></div>' +
+				'					<div class="JL" id=":ie.co">' +
+				buffer +
+				'                   </div></div></div>';
+			if (writeTime) {
+				appnd += '			<div class="TlvAYc">' +
+				'				<span style="float: '+flt+'; text-align: '+flt+'" aria-label="'+last_msgtime+'" class="sV" title="11/11/17, 7:25 AM">'+ last_msgtime + '</span></div>';
+			}
+			appnd += '<div class="TR"></div></div></div>';
+			$('.txt').append( appnd );
+			buffer = "";
 		}
+		
+		var newConvo;
+		
+		var startAt = $("#date-begin").val();
+		if (startAt != "") startAt = +new Date(startAt)*1000;
+		
+		var rawFormat = ! $("#hangout-format").is(":checked");
+		console.log("rawFormat = "+rawFormat);
+		
+		$(".txt").css("white-space", rawFormat ? "pre-wrap":"normal");
+		
+		for(var event_id in Conversations[id]){
+			convo_event = Conversations[id][event_id];
+			if (convo_event.timestamp > startAt) {
+				if (rawFormat) {
+					$('.txt').append(convo_event.msgtime + ": " + convo_event.sender + ": " + convo_event.message + "\n");
+				} else {
+					newConvo = convo_event.timestamp - last_timestamp > 600000000;
+					if (current_writer != convo_event.sender) {
+						writeBlock(newConvo);
+						idx = (idx+1)%2;
+					} else if (newConvo) {
+						writeBlock(true);
+					}
+					current_writer = convo_event.sender;
+					last_timestamp = convo_event.timestamp;
+					last_msgtime = convo_event.msgtime;
+					buffer += '<div class="Mu SP" data-tooltip="'+convo_event.msgtime+'" id=":ip.ma">' +
+					'<span class="tL8wMe EMoHub" dir="ltr" id=":ip.co" style="text-align: left;">' + convo_event.message +'</span></div>';
+				}
+			}
+		}
+		if (buffer != "") {
+			writeBlock(true);
+		}
+	}
+	
+	function formatEvent(convo_event) {
+		return convo_event.msgtime + ": " + convo_event.sender + ": " + convo_event.message + "\n";
 	}
 
 	function zeroPad(string) {
 		return (string < 10) ? "0" + string : string;
 	}
 
+	
+	var monthNames = [
+    "Jan", "Feb", "Mar",
+    "Apr", "May", "Jun", "Jul",
+    "Aug", "Sep", "Oct",
+    "Nov", "Dec"
+  ];
 	function formatTimestamp(timestamp) {
+	var date = new Date(timestamp/1000);
+	  var day = date.getDate();
+	  var monthIndex = date.getMonth();
+	  var year = date.getFullYear();
+
+	  var formattedDate = monthNames[monthIndex] + ' ' + day;
+	  var hours = (date.getHours());
+		var minutes = zeroPad(date.getMinutes());
+		var formattedTime = hours + ":" + minutes;
+		return formattedDate + ", " + formattedTime;
+	
+	// Initial
 		var d = new Date(timestamp/1000);
 		var formattedDate = d.getFullYear() + "-" +
 		    zeroPad(d.getMonth() + 1) + "-" +
