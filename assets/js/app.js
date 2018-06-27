@@ -24,7 +24,7 @@ $('.btn-file :file').on('fileselect', function(event, numFiles, label) {
 		reader.onload = function(evt) {
 			Hangouts = JSON.parse(evt.target.result);
 			console.log("Loaded: " + evt.target.result.length);
-			processData();
+		        processData();
 		}
 		reader.onerror = function(evt) {
 			alert("Error reading file");
@@ -33,12 +33,25 @@ $('.btn-file :file').on('fileselect', function(event, numFiles, label) {
 });
 
 function processData() {
+	if (Hangouts['conversation_state']) {
+	    processDataV1();
+	} else {
+	    processDataV2();
+	}
+}
+
+function processDataV1() {
 	// Remove previous conversations
 	$('li.convo').remove();
 	
 	// First we want to get all participants, so we loop fully once
 	for (key in Hangouts['conversation_state']) {
-		var conversation = Hangouts['conversation_state'][key]['conversation_state']['conversation'];
+		console.log('key=' + key);
+		var conversation_state = Hangouts['conversation_state'][key]['conversation_state'];
+		if (!conversation_state) {
+			continue;
+		}
+		var conversation = conversation_state['conversation'];
 
 		// Get inviter data
 		inviter['gaia_id'] = conversation['self_conversation_state']['inviter_id']['gaia_id'];
@@ -59,6 +72,9 @@ function processData() {
 	for (key in Hangouts['conversation_state']) {
 
 		var conversation_state = Hangouts['conversation_state'][key];
+		if (!conversation_state['conversation_state']) {
+			continue;
+		}
 		var id = conversation_state['conversation_id']['id'];
 		var conversation = conversation_state['conversation_state']['conversation'];
 
@@ -116,6 +132,122 @@ function processData() {
 						console.log(attachment);
 						if (attachment['embed_item']['type'][0] == "PLUS_PHOTO") {
 							message += "\n<a target='blank' href='" + attachment['embed_item']['embeds.PlusPhoto.plus_photo']['url'] + "'><img class='content' src='" + attachment['embed_item']['embeds.PlusPhoto.plus_photo']['thumbnail']['image_url'] + "' /></a>";
+						}
+					}
+				}
+
+				events.push({
+					msgtime: msgtime,
+					sender: participants_obj[sender],
+					isme: isme,
+					message: message,
+					timestamp: timestamp
+				});
+			}
+		}
+
+		// Sort events by timestamp
+		events.sort(function(a, b) {
+			var keyA = a.timestamp,
+				keyB = b.timestamp;
+			if (keyA < keyB) return -1;
+			if (keyA > keyB) return 1;
+			return 0;
+		});
+
+		// Add events
+		Conversations[id] = events;
+
+	}
+}
+
+
+function processDataV2() {
+	// Remove previous conversations
+	$('li.convo').remove();
+	
+	// First we want to get all participants, so we loop fully once
+	for (key in Hangouts['conversations']) {
+		var conversation = Hangouts['conversations'][key]['conversation']['conversation'];
+
+		// Get inviter data
+		inviter['gaia_id'] = conversation['self_conversation_state']['inviter_id']['gaia_id'];
+
+		// Get all participants
+		for (person_key in conversation['participant_data']) {
+			var person = conversation['participant_data'][person_key];
+			var gaia_id = person['id']['gaia_id'];
+
+			if (!person['fallback_name'] || person['fallback_name'] == null) continue;
+
+			if (!all_participants[gaia_id])
+				all_participants[gaia_id] = person['fallback_name'];
+		}
+
+	}
+
+	for (key in Hangouts['conversations']) {
+
+		var conversation = Hangouts['conversations'][key];
+		var id = conversation['conversation']['conversation_id']['id'];
+
+		// var conversation_state = Hangouts['conversations'][key];
+		// var conversation = conversation_state['conversations']['conversation'];
+
+		// Find participants
+		var participants = [];
+		var participants_obj = {};
+
+		for (person_key in conversation['conversation']['conversation']['participant_data']) {
+			var person = conversation['conversation']['conversation']['participant_data'][person_key];
+			var gaia_id = person['id']['gaia_id'];
+			var name = "Unknown";
+
+			if (person['fallback_name']) {
+				name = person['fallback_name'];
+			} else {
+				name = all_participants[gaia_id];
+			}
+
+			if (gaia_id == inviter['gaia_id']) {
+				inviter['fallback_name'] = name;
+			} else {
+				participants.push(name);
+				participants_obj[gaia_id] = name;
+			}
+		}
+		var participants_string = participants.join(", ");
+
+		// Add to list
+		$(".convo-list").append('<li class="convo"><a href="javascript:void(0);" onclick="switchConvo(' + "'" + id + "'" + ')" class="waves-effect convo">' + participants_string + '</a></li>');
+
+		// Parse events
+		var events = [];
+		for (event_key in conversation['events']) {
+			var convo_event = conversation['events'][event_key];
+			var timestamp = convo_event['timestamp'];
+			var msgtime = formatTimestamp(timestamp);
+			var sender = convo_event['sender_id']['gaia_id'];
+			var isme = (inviter['gaia_id'] == sender) ? true : false;
+			var message = "";
+
+			if (convo_event['chat_message']) {
+
+				// Get message
+				for (msg_key in convo_event['chat_message']['message_content']['segment']) {
+					var segment = convo_event['chat_message']['message_content']['segment'][msg_key];
+					if (segment['type'] == 'LINE_BREAK') message += "\n";
+					if (!segment['text']) continue;
+					message += twemoji.parse(segment['text']);
+				}
+
+				// Check for images on event
+				if (convo_event['chat_message']['message_content']['attachment']) {
+					for (var attach_key in convo_event['chat_message']['message_content']['attachment']) {
+						var attachment = convo_event['chat_message']['message_content']['attachment'][attach_key];
+						console.log(attachment);
+						if (attachment['embed_item']['type'][0] == "PLUS_PHOTO") {
+							message += "\n<a target='blank' href='" + attachment['embed_item']['plus_photo']['url'] + "'><img class='content' src='" + attachment['embed_item']['plus_photo']['thumbnail']['image_url'] + "' /></a>";
 						}
 					}
 				}
