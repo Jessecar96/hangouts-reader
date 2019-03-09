@@ -121,8 +121,10 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 	function processData() {
 
 		// First we want to get all participants, so we loop fully once
-		for(key in Hangouts['conversation_state']) {
-			var conversation = Hangouts['conversation_state'][key]['conversation_state']['conversation'];
+		for(key in Hangouts['conversations']) {
+			var conversation = Hangouts['conversations'][key]['conversation']['conversation'];
+
+            var s = 'Getting participants from #' + key + ':';
 
 			// Get all participants
 			for(person_key in conversation['participant_data']){
@@ -131,17 +133,21 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 
 				if(!person['fallback_name'] || person['fallback_name'] == null) continue;
 
+                s += ' ' + person['fallback_name'];
+
 				if(!all_participants[gaia_id])
 					all_participants[gaia_id] = person['fallback_name'];
 			}
 
+            console.log(s);
+
 		}
 
-		for(key in Hangouts['conversation_state']) {
+		for(key in Hangouts['conversations']) {
 
-			var conversation_state = Hangouts['conversation_state'][key];
-			var id = conversation_state['conversation_id']['id'];
-			var conversation = conversation_state['conversation_state']['conversation'];
+			var conversation_state = Hangouts['conversations'][key];
+			var id = conversation_state['conversation']['conversation_id']['id'];
+			var conversation = conversation_state['conversation']['conversation'];
 
 			// Find participants
 			var participants = [], participants_obj = {};
@@ -162,13 +168,15 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 			}
 			var participants_string = participants.join(", ");
 
+            console.log('Parsing #' + key + ': ' + participants_string);
+
 			// Add to list
 			$(".convo-list").append("<a href=\"javascript:void(0);\" onclick=\"switchConvo('"+id+"')\" class=\"list-group-item\">" + participants_string + "</a>");
 
 			// Parse events
 			var events = [];
-			for(event_key in conversation_state['conversation_state']['event']){
-				var convo_event = conversation_state['conversation_state']['event'][event_key];
+			for(event_key in conversation_state['events']){
+				var convo_event = conversation_state['events'][event_key];
 				var timestamp = convo_event['timestamp'];
 				var msgtime = formatTimestamp(timestamp);
 				var sender = convo_event['sender_id']['gaia_id'];
@@ -189,7 +197,7 @@ You can view the source code <a href="https://github.com/Jessecar96/hangouts-rea
 							var attachment = convo_event['chat_message']['message_content']['attachment'][attach_key];
 							console.log(attachment);
 							if(attachment['embed_item']['type'][0] == "PLUS_PHOTO"){
-								message += "\n<a target='blank' href='" + attachment['embed_item']['embeds.PlusPhoto.plus_photo']['url'] + "'><img class='thumb' src='" + attachment['embed_item']['embeds.PlusPhoto.plus_photo']['thumbnail']['image_url'] + "' /></a>";
+								message += "\n<a target='blank' href='" + attachment['embed_item']['plus_photo']['url'] + "'><img class='thumb' src='" + attachment['embed_item']['plus_photo']['thumbnail']['image_url'] + "' /></a>";
 							}
 						}
 					}
