@@ -9,3 +9,7 @@ https://jessecar96.github.io/hangouts-reader/
 - View images inline with thumbnails.
 - Emoji support by [twemoji](https://github.com/twitter/twemoji)
 - If you have merged Google Voice and Hangouts you will also see your Google Voice conversations.
+
+## Fork features
+- Ability to only display chat entries from a certain date
+- Ability to format the chat entries to appear similar to on-screen hangouts
